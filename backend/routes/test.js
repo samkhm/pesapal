@@ -5,10 +5,13 @@ const router = express.Router();
 
 router.get("/test-token", async (req, res) => {
   try {
-    const token = await getAccessToken();
-    res.json({ token });
+    // Call Pesapal
+    const tokenResponse = await getAccessToken(true); // pass a flag if needed
+    // Return the full response
+    res.json(tokenResponse);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error fetching token:", err.response || err.message);
+    res.status(500).json({ error: err.response?.data || err.message });
   }
 });
 
