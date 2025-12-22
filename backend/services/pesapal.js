@@ -20,7 +20,8 @@ async function getAccessToken() {
       }
     );
     console.log("Token response:", response.data);
-    return response.data?.token;
+    return response.data;
+    // return response.data?.token;
   } catch (err) {
     if (err.response) {
       console.error("Pesapal token error:", err.response.data);
