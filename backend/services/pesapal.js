@@ -3,12 +3,15 @@ const axios = require("axios");
 const PESAPAL_BASE_URL = process.env.PESAPAL_BASE_URL;
 const CONSUMER_KEY = process.env.PESAPAL_CONSUMER_KEY;
 const CONSUMER_SECRET = process.env.PESAPAL_CONSUMER_SECRET;
+const axios = require("axios");
 
-async function getAccessToken() {
+
+
+async function getAccessToken(returnFullResponse = false) {
   try {
     const response = await axios.post(
       `${PESAPAL_BASE_URL}/api/Auth/RequestToken`,
-      null, // no body needed
+      null, // no body
       {
         auth: {
           username: CONSUMER_KEY,
@@ -19,18 +22,21 @@ async function getAccessToken() {
         }
       }
     );
-    console.log("Token response:", response.data);
-    return response.data;
-    // return response.data?.token;
+    console.log("Pesapal token response:", response.data);
+    return returnFullResponse ? response.data : response.data?.token;
   } catch (err) {
     if (err.response) {
       console.error("Pesapal token error:", err.response.data);
+      return returnFullResponse ? err.response.data : null;
     } else {
       console.error("Pesapal token request failed:", err.message);
+      return null;
     }
-    return null;
   }
 }
+
+module.exports = { getAccessToken };
+
 
 // Submit order
 async function createOrder(token, order) {
