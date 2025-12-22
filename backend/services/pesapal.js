@@ -3,9 +3,6 @@ const axios = require("axios");
 const PESAPAL_BASE_URL = process.env.PESAPAL_BASE_URL;
 const CONSUMER_KEY = process.env.PESAPAL_CONSUMER_KEY;
 const CONSUMER_SECRET = process.env.PESAPAL_CONSUMER_SECRET;
-const axios = require("axios");
-
-
 
 async function getAccessToken(returnFullResponse = false) {
   try {
