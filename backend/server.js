@@ -18,5 +18,5 @@ app.use("/api", paymentRoutes);
 const PORT = process.env.PORT;
 
 app.listen(PORT, () => {
-  console.log("Backend running on port 5000");
+  console.log(`Server running on port http://localhost:${PORT}`);
 });
