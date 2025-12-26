@@ -153,7 +153,7 @@ router.all("/callback", async (req, res) => {
 
     if (acceptsHtml) {
       return res.redirect(
-        `${process.env.FRONTEND_URL}/payment-status?ref=${OrderMerchantReference}`
+        `${process.env.FRONTEND_URL}`
       );
     }
 
