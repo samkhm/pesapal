@@ -112,7 +112,7 @@ router.all("/callback", async (req, res) => {
   try {
     const token = await getAccessToken();
     if (token) {
-      const response = await axios.post(
+      const result = await axios.post(
         `${process.env.PESAPAL_BASE_URL}/api/Transactions/GetTransactionStatus`,
         { orderTrackingId: OrderTrackingId },
         {
@@ -125,7 +125,10 @@ router.all("/callback", async (req, res) => {
 
     
 
+      console.log("Transaction information", result)
+
 const statusDesc = result.payment_status_description;
+
 
 let status = "PENDING";
 if (statusDesc === "Completed") status = "COMPLETED";
