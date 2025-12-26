@@ -106,7 +106,7 @@ router.all("/callback", async (req, res) => {
 
   // Always acknowledge Pesapal if missing data
   if (!OrderTrackingId || !OrderMerchantReference) {
-    return res.status(200).send("OK");
+    return res.status(200).send("OK Done");
   }
 
   try {
@@ -130,7 +130,7 @@ router.all("/callback", async (req, res) => {
       if (desc === "Failed") status = "FAILED";
       if (desc === "Cancelled") status = "CANCELLED";
 
-      await Payment.findOneAndUpdate(
+  const updatedIs =  await Payment.findOneAndUpdate(
         { transactionId: OrderMerchantReference },
         {
           status,
@@ -138,6 +138,8 @@ router.all("/callback", async (req, res) => {
           updatedAt: new Date()
         }
       );
+
+      console.log("Updted data: ", updatedIs)
     }
 
     /**
