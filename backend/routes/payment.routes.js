@@ -97,63 +97,57 @@ router.post("/pay", async (req, res) => {
 
 
 router.all("/callback", async (req, res) => {
-  const data = req.body?.OrderTrackingId ? req.body : req.query;
+  // Pesapal sends:
+  // - GET → browser redirect
+  // - POST → IPN
+  const payload = req.method === "POST" ? req.body : req.query;
 
-  const {
-    OrderTrackingId,
-    OrderMerchantReference
-  } = data || {};
+  const { OrderTrackingId, OrderMerchantReference } = payload || {};
 
-  // Always acknowledge Pesapal if missing data
+  console.log("Pesapal callback received:", payload);
+
+  // Always acknowledge Pesapal if data is missing
   if (!OrderTrackingId || !OrderMerchantReference) {
     return res.status(200).send("OK");
   }
 
   try {
+    // 1. Get access token
     const token = await getAccessToken();
-
-    console.log("Token for call back,", token)
-
-    if (token) {
-      const result = await axios.post(
-        `${process.env.PESAPAL_BASE_URL}/api/Transactions/GetTransactionStatus`,
-        { orderTrackingId: OrderTrackingId },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          }
-        }
-      );
-
-    
-
-      console.log("Transaction information", result)
-
-const statusDesc = result.payment_status_description;
-
-
-let status = "PENDING";
-if (statusDesc === "Completed") status = "COMPLETED";
-if (statusDesc === "Failed") status = "FAILED";
-if (statusDesc === "Cancelled") status = "CANCELLED";
-
-  const updatedIs =  await Payment.findOneAndUpdate(
-        { transactionId: OrderMerchantReference },
-        {
-          status,
-          pesapalTrackingId: OrderTrackingId,
-          updatedAt: new Date()
-        }
-      );
-
-      console.log("Updted data: ", updatedIs)
+    if (!token) {
+      console.error("Failed to get Pesapal token");
+      return res.status(200).send("OK");
     }
 
+    // 2. Verify transaction status
+    const transaction = await verifyTransaction(token, OrderTrackingId);
+    console.log("Pesapal transaction status:", transaction);
+
     /**
-     * 🔑 IMPORTANT PART
-     * If this request came from a browser, redirect
+     * Typical response fields you care about:
+     * transaction.payment_status_description
+     * transaction.status_code
      */
+
+    const statusDesc = transaction.payment_status_description;
+
+    let status = "PENDING";
+    if (statusDesc === "Completed") status = "COMPLETED";
+    else if (statusDesc === "Failed") status = "FAILED";
+    else if (statusDesc === "Cancelled") status = "CANCELLED";
+
+    // 3. Update DB
+    await Payment.findOneAndUpdate(
+      { transactionId: OrderMerchantReference },
+      {
+        status,
+        pesapalTrackingId: OrderTrackingId,
+        pesapalResponse: transaction,
+        updatedAt: new Date()
+      }
+    );
+
+    // 4. If browser request → redirect user
     const acceptsHtml =
       req.headers.accept && req.headers.accept.includes("text/html");
 
@@ -163,14 +157,20 @@ if (statusDesc === "Cancelled") status = "CANCELLED";
       );
     }
 
-    // Otherwise IPN
+    // 5. IPN must always return 200 OK
     return res.status(200).send("OK");
 
   } catch (err) {
-    console.error("Callback error:", err.response?.data || err.message);
+    console.error(
+      "IPN/callback error:",
+      err.response?.data || err.message
+    );
+
+    // IMPORTANT: always return 200 to prevent Pesapal retries
     return res.status(200).send("OK");
   }
 });
+
 
 
 
