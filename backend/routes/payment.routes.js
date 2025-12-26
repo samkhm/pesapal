@@ -106,11 +106,14 @@ router.all("/callback", async (req, res) => {
 
   // Always acknowledge Pesapal if missing data
   if (!OrderTrackingId || !OrderMerchantReference) {
-    return res.status(200).send("OK Done");
+    return res.status(200).send("OK");
   }
 
   try {
     const token = await getAccessToken();
+
+    console.log("Token for call back,", token)
+
     if (token) {
       const result = await axios.post(
         `${process.env.PESAPAL_BASE_URL}/api/Transactions/GetTransactionStatus`,
