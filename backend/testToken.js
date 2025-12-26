@@ -3,5 +3,5 @@ const { getAccessToken } = require("./services/pesapal");
 
 (async () => {
   const token = await getAccessToken();
-  console.log("Sandbox access token:", token);
+  console.log("Sandbox access token is here:", token);
 })();
