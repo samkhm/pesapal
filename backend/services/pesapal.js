@@ -35,25 +35,7 @@ async function createOrder(token, order) {
   }
 }
 
-// Verify transaction (sandbox: POST to GetTransactionStatus)
-
-// async function verifyTransaction(token, orderTrackingId) {
-//   if (!orderTrackingId) {
-//     throw new Error("orderTrackingId is required to verify transaction");
-//   }
-
-//   const response = await axios({
-//     method: "get",
-//     maxBodyLength: Infinity,
-//     url: `https://pay.pesapal.com/v3/api/Transactions/GetTransactionStatus?orderTrackingId=${orderTrackingId}`,   
-//     headers: {
-//       Authorization: `Bearer ${token}`,
-//       Accept: "application/json"
-//     }
-//   });
-
-//   return response.data;
-// }
+Verify transaction (sandbox: POST to GetTransactionStatus)
 
 async function verifyTransaction(token, orderTrackingId) {
   if (!orderTrackingId) {
@@ -63,8 +45,7 @@ async function verifyTransaction(token, orderTrackingId) {
   const response = await axios({
     method: "get",
     maxBodyLength: Infinity,
-    url: `${process.env.PESAPAL_BASE_URL}/api/Transactions/GetTransactionStatus`,
-    params: { orderTrackingId },
+    url: `${process.env.PESAPAL_BASE_URL}/api/Transactions/GetTransactionStatus?orderTrackingId=${orderTrackingId}`,   
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/json"
@@ -73,6 +54,8 @@ async function verifyTransaction(token, orderTrackingId) {
 
   return response.data;
 }
+
+
 
 
 
