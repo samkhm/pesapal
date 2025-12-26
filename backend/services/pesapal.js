@@ -35,7 +35,7 @@ async function createOrder(token, order) {
   }
 }
 
-Verify transaction (sandbox: POST to GetTransactionStatus)
+//Verify transaction (sandbox: POST to GetTransactionStatus)
 
 async function verifyTransaction(token, orderTrackingId) {
   if (!orderTrackingId) {
