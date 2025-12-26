@@ -36,18 +36,20 @@ async function createOrder(token, order) {
 }
 
 // Verify transaction (sandbox: POST to GetTransactionStatus)
-async function verifyTransaction(token, trackingId) {
-  try {
-    const response = await axios.post(
-      `${PESAPAL_BASE_URL}/api/Transactions/GetTransactionStatus`,
-      { orderTrackingId: trackingId },
-      { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
-    );
-    return response.data;
-  } catch (err) {
-    console.error("Pesapal verify transaction error:", err.response?.data || err.message);
-    throw err;
-  }
+async function verifyTransaction(token, orderTrackingId) {
+  const response = await axios.get(
+    `${process.env.PESAPAL_BASE_URL}/api/Transactions/GetTransactionStatus`,
+    {
+      params: { orderTrackingId },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json"
+      }
+    }
+  );
+
+  return response.data;
 }
+
 
 module.exports = { getAccessToken, createOrder, verifyTransaction };

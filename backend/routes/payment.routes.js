@@ -123,12 +123,14 @@ router.all("/callback", async (req, res) => {
         }
       );
 
-      const desc = response.data.payment_status_description;
+    
 
-      let status = "PENDING";
-      if (desc === "Completed") status = "COMPLETED";
-      if (desc === "Failed") status = "FAILED";
-      if (desc === "Cancelled") status = "CANCELLED";
+const statusDesc = result.payment_status_description;
+
+let status = "PENDING";
+if (statusDesc === "Completed") status = "COMPLETED";
+if (statusDesc === "Failed") status = "FAILED";
+if (statusDesc === "Cancelled") status = "CANCELLED";
 
   const updatedIs =  await Payment.findOneAndUpdate(
         { transactionId: OrderMerchantReference },
