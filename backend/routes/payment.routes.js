@@ -126,8 +126,15 @@ router.all("/callback", async (req, res) => {
       );
     }
 
+    //send to frontend
+    if (req.method === "GET") {
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/payment-status?ref=${OrderMerchantReference}`
+      );
+    }
+
     // Always respond 200 OK to avoid repeated retries
-    res.status(200).send("OK");
+    // res.status(200).send("OK");
   } catch (err) {
     console.error("IPN/callback verification error:", err.response?.data || err.message);
     res.status(200).send("OK");
