@@ -97,54 +97,63 @@ router.post("/pay", async (req, res) => {
 
 
 router.all("/callback", async (req, res) => {
-  const data = req.method === "POST" ? req.body : req.query;
+  const data = req.body?.OrderTrackingId ? req.body : req.query;
 
-  const { OrderTrackingId, OrderMerchantReference } = data;
+  const {
+    OrderTrackingId,
+    OrderMerchantReference
+  } = data || {};
 
-  // Always acknowledge Pesapal
+  // Always acknowledge Pesapal if missing data
   if (!OrderTrackingId || !OrderMerchantReference) {
     return res.status(200).send("OK");
   }
 
   try {
     const token = await getAccessToken();
-    if (!token) return res.status(200).send("OK");
-
-    const verifyResponse = await axios.post(
-      `${process.env.PESAPAL_BASE_URL}/api/Transactions/GetTransactionStatus`,
-      { orderTrackingId: OrderTrackingId },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
+    if (token) {
+      const response = await axios.post(
+        `${process.env.PESAPAL_BASE_URL}/api/Transactions/GetTransactionStatus`,
+        { orderTrackingId: OrderTrackingId },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
         }
-      }
-    );
+      );
 
-    const statusDesc = verifyResponse.data.payment_status_description;
+      const desc = response.data.payment_status_description;
 
-    let status = "PENDING";
-    if (statusDesc === "Completed") status = "COMPLETED";
-    if (statusDesc === "Failed") status = "FAILED";
-    if (statusDesc === "Cancelled") status = "CANCELLED";
+      let status = "PENDING";
+      if (desc === "Completed") status = "COMPLETED";
+      if (desc === "Failed") status = "FAILED";
+      if (desc === "Cancelled") status = "CANCELLED";
 
-    await Payment.findOneAndUpdate(
-      { transactionId: OrderMerchantReference },
-      {
-        status,
-        pesapalTrackingId: OrderTrackingId,
-        updatedAt: new Date()
-      }
-    );
+      await Payment.findOneAndUpdate(
+        { transactionId: OrderMerchantReference },
+        {
+          status,
+          pesapalTrackingId: OrderTrackingId,
+          updatedAt: new Date()
+        }
+      );
+    }
 
-    // Browser redirect
-    if (req.method === "GET") {
+    /**
+     * 🔑 IMPORTANT PART
+     * If this request came from a browser, redirect
+     */
+    const acceptsHtml =
+      req.headers.accept && req.headers.accept.includes("text/html");
+
+    if (acceptsHtml) {
       return res.redirect(
         `${process.env.FRONTEND_URL}/payment-status?ref=${OrderMerchantReference}`
       );
     }
 
-    // IPN response
+    // Otherwise IPN
     return res.status(200).send("OK");
 
   } catch (err) {
@@ -152,6 +161,7 @@ router.all("/callback", async (req, res) => {
     return res.status(200).send("OK");
   }
 });
+
 
 
 
