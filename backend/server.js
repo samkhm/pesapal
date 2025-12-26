@@ -13,8 +13,7 @@ app.use(express.json());
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"));
 
-  const testRoute = require("./routes/test");
-  app.use("/api", testRoute);
+ 
 
 
 app.use("/api", paymentRoutes);

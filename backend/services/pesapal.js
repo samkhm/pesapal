@@ -4,83 +4,50 @@ const PESAPAL_BASE_URL = process.env.PESAPAL_BASE_URL;
 const CONSUMER_KEY = process.env.PESAPAL_CONSUMER_KEY;
 const CONSUMER_SECRET = process.env.PESAPAL_CONSUMER_SECRET;
 
-async function getAccessToken(returnFullResponse = false) {
+// Get Pesapal access token
+async function getAccessToken() {
   try {
     const response = await axios.post(
       `${PESAPAL_BASE_URL}/api/Auth/RequestToken`,
-      null, // no body
-      {
-        auth: {
-          username: CONSUMER_KEY,
-          password: CONSUMER_SECRET
-        },
-        headers: {
-          "Content-Type": "application/json"
-        }
-      }
+      { consumer_key: CONSUMER_KEY, consumer_secret: CONSUMER_SECRET },
+      { headers: { "Content-Type": "application/json" } }
     );
-    console.log("Pesapal token response:", response.data);
-    return returnFullResponse ? response.data : response.data?.token;
+
+    return response.data.token;
   } catch (err) {
-    if (err.response) {
-      console.error("Pesapal token error:", err.response.data);
-      return returnFullResponse ? err.response.data : null;
-    } else {
-      console.error("Pesapal token request failed:", err.message);
-      return null;
-    }
+    console.error("Pesapal token error:", err.response?.data || err.message);
+    return null;
   }
 }
 
-module.exports = { getAccessToken };
-
-
-// Submit order
+// Submit Pesapal order
 async function createOrder(token, order) {
   try {
     const response = await axios.post(
       `${PESAPAL_BASE_URL}/api/Transactions/SubmitOrderRequest`,
       order,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
-      }
+      { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
     );
-    console.log("Pesapal order response:", response.data);
     return response.data;
   } catch (err) {
-    if (err.response) {
-      console.error("Pesapal create order error:", err.response.data);
-    } else {
-      console.error("Pesapal create order request failed:", err.message);
-    }
+    console.error("Pesapal create order error:", err.response?.data || err.message);
     throw err;
   }
 }
 
-// Verify transaction status
+// Verify transaction (sandbox: POST to GetTransactionStatus)
 async function verifyTransaction(token, trackingId) {
   try {
-    const response = await axios.get(
-      `${PESAPAL_BASE_URL}/api/Transactions/GetTransactionStatus/${trackingId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
+    const response = await axios.post(
+      `${PESAPAL_BASE_URL}/api/Transactions/GetTransactionStatus`,
+      { orderTrackingId: trackingId },
+      { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
     );
     return response.data;
   } catch (err) {
-    if (err.response) {
-      console.error("Pesapal verify transaction error:", err.response.data);
-    } else {
-      console.error("Pesapal verify transaction request failed:", err.message);
-    }
+    console.error("Pesapal verify transaction error:", err.response?.data || err.message);
     throw err;
   }
 }
 
-// Export all functions
 module.exports = { getAccessToken, createOrder, verifyTransaction };
