@@ -97,47 +97,76 @@ router.post("/pay", async (req, res) => {
 
 
 router.all("/callback", async (req, res) => {
-  // Pesapal may send data via query (GET) or body (POST)
-  const { OrderTrackingId, OrderMerchantReference } = req.method === "POST" ? req.body : req.query;
+  const data = req.method === "POST" ? req.body : req.query;
 
+  const {
+    OrderTrackingId,
+    OrderMerchantReference
+  } = data;
+
+  // Always return 200 to Pesapal
   if (!OrderTrackingId || !OrderMerchantReference) {
-    return res.status(400).send("Missing reference");
+    return res.status(200).send("OK");
   }
 
   try {
-    // Get token
+    // 1. Get token
     const token = await getAccessToken();
-    if (!token) return res.status(500).send("Unable to obtain access token");
-
-    // Verify transaction status
-    const result = await verifyTransaction(token, OrderTrackingId);
-    console.log("Transaction status fetched:", result);
-
-    // Only update DB if COMPLETED
-    if (result.status === "COMPLETED") {
-      await Payment.findOneAndUpdate(
-        { transactionId: OrderMerchantReference },
-        { status: "COMPLETED", pesapalTrackingId: OrderTrackingId, updatedAt: new Date() }
-      );
-    } else if (result.status === "FAILED") {
-      await Payment.findOneAndUpdate(
-        { transactionId: OrderMerchantReference },
-        { status: "FAILED", pesapalTrackingId: OrderTrackingId, updatedAt: new Date() }
-      );
+    if (!token) {
+      console.error("Failed to get token during callback");
+      return res.status(200).send("OK");
     }
 
-    //send to frontend
+    // 2. VERIFY TRANSACTION (CORRECT ENDPOINT)
+    const verifyResponse = await axios.post(
+      `${process.env.PESAPAL_BASE_URL}/api/Transactions/GetTransactionStatus`,
+      {
+        orderTrackingId: OrderTrackingId
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    console.log("Pesapal verification response:", verifyResponse.data);
+
+    const paymentStatus = verifyResponse.data.payment_status_description;
+
+    // 3. Map status
+    let dbStatus = "PENDING";
+    if (paymentStatus === "Completed") dbStatus = "COMPLETED";
+    if (paymentStatus === "Failed") dbStatus = "FAILED";
+    if (paymentStatus === "Cancelled") dbStatus = "CANCELLED";
+
+    // 4. Update DB
+    await Payment.findOneAndUpdate(
+      { transactionId: OrderMerchantReference },
+      {
+        status: dbStatus,
+        pesapalTrackingId: OrderTrackingId,
+        updatedAt: new Date()
+      }
+    );
+
+    // 5. Redirect browser users
     if (req.method === "GET") {
       return res.redirect(
         `${process.env.FRONTEND_URL}/payment-status?ref=${OrderMerchantReference}`
       );
     }
 
-    // Always respond 200 OK to avoid repeated retries
-    // res.status(200).send("OK");
+    // 6. Respond OK for IPN
+    return res.status(200).send("OK");
+
   } catch (err) {
-    console.error("IPN/callback verification error:", err.response?.data || err.message);
-    res.status(200).send("OK");
+    console.error(
+      "IPN/callback verification error:",
+      err.response?.data || err.message
+    );
+    return res.status(200).send("OK");
   }
 });
 
